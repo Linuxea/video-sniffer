@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>视频嗅探器 · 设置</title>
+    <style>
+      :root {
+        --bg: #17181c;
+        --panel: #1f2127;
+        --border: #32353f;
+        --text: #e6e8ee;
+        --muted: #8b90a0;
+        --accent: #34d399;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        font-size: 14px;
+        background: var(--bg);
+        color: var(--text);
+        display: flex;
+        justify-content: center;
+        padding: 48px 16px;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 24px;
+        width: 420px;
+        height: fit-content;
+      }
+      h1 {
+        font-size: 16px;
+        margin-bottom: 20px;
+      }
+      .field {
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .field:last-of-type {
+        border-bottom: none;
+      }
+      label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .desc {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 6px;
+        line-height: 1.6;
+      }
+      input[type='number'] {
+        width: 72px;
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 6px 8px;
+        font-size: 13px;
+      }
+      input[type='checkbox'] {
+        width: 16px;
+        height: 16px;
+        accent-color: var(--accent);
+      }
+      .status {
+        margin-top: 16px;
+        color: var(--accent);
+        font-size: 12px;
+        height: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>⚙ 视频嗅探器设置</h1>
+
+      <div class="field">
+        <label>
+          <span>分片并发下载数</span>
+          <input type="number" id="concurrency" min="1" max="16" step="1" />
+        </label>
+        <div class="desc">同时下载的分片数量。越大越快，但部分 CDN 可能限流，建议 4 ~ 8。</div>
+      </div>
+
+      <div class="field">
+        <label>
+          <span>保存到 VideoSniffer 子文件夹</span>
+          <input type="checkbox" id="subfolder" />
+        </label>
+        <div class="desc">文件将保存到「下载 / VideoSniffer /」目录，保持下载目录整洁。</div>
+      </div>
+
+      <div class="field">
+        <label>
+          <span>TS 分片自动转封装为 MP4</span>
+          <input type="checkbox" id="preferMp4" />
+        </label>
+        <div class="desc">使用内置转封装器将 MPEG-TS 合并为 MP4；个别流可能失败，此时自动回退保存为 .ts 文件（同样可播放）。</div>
+      </div>
+
+      <div class="status" id="status"></div>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
