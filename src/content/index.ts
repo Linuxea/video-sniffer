@@ -2,11 +2,17 @@
  * content script：
  * 1. 扫描 DOM 中的 video/source/embed/object，上报元信息（时长、分辨率）
  * 2. 扫描 performance resource entries（兜底：content script 注入前已发出的请求）
- * 3. 充当"页面上下文 fetch 代理"：offscreen 直连失败时经 background 中继，
+ * 3. 扫描页面 HTML（含 data-* 属性、内联脚本/JSON 播放器配置）中的 m3u8/mpd 清单地址
+ *    （很多站不发起独立的 .m3u8 网络请求，或把清单直接内嵌在页面里，
+ *     网络层抓不到 —— 典型如 dplayer 系站点把地址写在 data-* 配置里）
+ * 4. 充当"页面上下文 fetch 代理"：offscreen 直连失败时经 background 中继，
  *    在页面自己的上下文里 fetch（带 Cookie/Referer，绕开 CORS）
  */
 
 const VIDEO_EXT_RE = /\.(mp4|m4v|webm|flv|mov|mkv|avi|ts|m4s|m3u8|mpd)(\?|#|$)/i
+
+/** 页面文本中的绝对清单地址（m3u8 / mpd，可带查询串） */
+const PLAYLIST_IN_HTML_RE = /https?:\/\/[^\s"'<>\\]+?\.(?:m3u8|mpd)(?:\?[^\s"'<>\\]*)?/gi
 const isTop = window === window.top
 
 function sendToBackground(payload: Record<string, unknown>) {
@@ -58,6 +64,48 @@ function scanDom() {
   if (items.length) sendToBackground({ type: 'DOM_MEDIA_FOUND', items })
 }
 
+/**
+ * 扫描整页 HTML 中的清单地址：
+ * - 覆盖 data-* 属性、内联 <script> / JSON 播放器配置（dplayer、artplayer 等）
+ * - 先还原 JSON 转义的 `\/` 与 HTML 实体 `&amp;`，再做正则匹配
+ * - 只认绝对地址，相对地址场景太少且噪音大
+ */
+function scanHtmlPlaylists() {
+  const items: DomItem[] = []
+  const seen = new Set<string>()
+  let html = ''
+  try {
+    html = document.documentElement.outerHTML
+  } catch {
+    return
+  }
+  html = html
+    .split('\\/')
+    .join('/')
+    .split('&amp;')
+    .join('&')
+    .split('&quot;')
+    .join('"')
+    .split('&#34;')
+    .join('"')
+    .split('&apos;')
+    .join("'")
+    .split('&#39;')
+    .join("'")
+  for (const m of html.matchAll(PLAYLIST_IN_HTML_RE)) {
+    let url: string
+    try {
+      url = new URL(m[0], location.href).href
+    } catch {
+      continue
+    }
+    if (seen.has(url)) continue
+    seen.add(url)
+    items.push({ url })
+  }
+  if (items.length) sendToBackground({ type: 'DOM_MEDIA_FOUND', items })
+}
+
 function scanPerf() {
   try {
     const entries = performance.getEntriesByType('resource') as PerformanceResourceTiming[]
@@ -76,6 +124,7 @@ function scheduleScan() {
   scanTimer = setTimeout(() => {
     scanTimer = null
     scanDom()
+    scanHtmlPlaylists()
   }, 400)
 }
 
@@ -87,6 +136,7 @@ if (isTop) {
 }
 
 scanDom()
+scanHtmlPlaylists()
 scanPerf()
 
 // DOM 变化 / 视频元信息就绪时重扫
@@ -110,6 +160,7 @@ chrome.runtime.onMessage.addListener((msg: any, _sender, sendResponse) => {
   if (!msg || msg.target !== 'content') return
   if (msg.type === 'RESCAN') {
     scanDom()
+    scanHtmlPlaylists()
     scanPerf()
     sendResponse({ ok: true })
     return

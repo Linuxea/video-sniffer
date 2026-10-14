@@ -130,14 +130,15 @@ class ResourceStore {
 
   /**
    * popup 展示列表：按捕获时间倒序；
-   * 若 tab 内已抓到 m3u8/mpd，则隐藏零散分片条目（被 playlist 吸收）。
+   * 若 tab 内已抓到 m3u8/mpd 清单，则隐藏零散分片条目（被 playlist 吸收）
+   * 和 blob 条目（MSE 播放器的真实地址已找到，blob 只是重复信号）。
    */
   listVisible(tabId: number): MediaResource[] {
     const t = this.tabs.get(tabId)
     if (!t) return []
     const arr = [...t.resources.values()].sort((a, b) => b.capturedAt - a.capturedAt)
     const hasStream = arr.some((r) => r.kind === 'hls' || r.kind === 'dash')
-    return arr.filter((r) => !(hasStream && r.kind === 'segment'))
+    return arr.filter((r) => !(hasStream && (r.kind === 'segment' || r.kind === 'blob')))
   }
 
   async clear(tabId: number) {

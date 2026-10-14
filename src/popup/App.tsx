@@ -48,14 +48,15 @@ function ExtBadge({ res }: { res: MediaResource }) {
 
 function ResourceMeta({ res }: { res: MediaResource }) {
   const bits: string[] = []
+  // 清单文件本身的大小（几 KB 级）没有参考意义，容易被误读成视频大小，不展示
   const size = formatBytes(res.sizeBytes)
-  if (size) bits.push(size)
+  if (size && res.kind !== 'hls' && res.kind !== 'dash') bits.push(size)
   const dur = formatDuration(res.duration)
   if (dur) bits.push(dur)
   if (res.width && res.height) bits.push(`${res.width}×${res.height}`)
   bits.push(hostOf(res.url))
   const t = new Date(res.capturedAt)
-  bits.push(`${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`)
+  bits.push(`发现于 ${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`)
   return (
     <div className="res-meta">
       {bits.map((b, i) => (

@@ -7,6 +7,7 @@
 - **三层嗅探**
   - 网络层：`webRequest` 观察模式捕获 `mp4 / webm / flv / m3u8 / mpd / ts / m4s` 等请求（含 MSE 流媒体的真实地址）
   - DOM 层：扫描 `video / source / embed / object`，补充时长、分辨率元信息
+  - 页面内嵌清单扫描：正则扫描整页 HTML（含 `data-*` 属性、内联脚本 / JSON 播放器配置，自动还原 `\/`、`&amp;` 转义），提取 m3u8 / mpd 地址 —— 应对不发起独立 m3u8 请求、把清单直接写在页面里的站点（如 dplayer 系）
   - 兜底层：performance resource entries（捕获 content script 注入前的请求）
 - **直链下载**：mp4/webm/flv 等直接调用浏览器下载
 - **HLS 完整下载**：解析 master playlist 多清晰度任选 → 并发分片下载 → AES-128 自动解密 → 合并为 MP4（fMP4 流直接拼接；TS 流经 mux.js 转封装，失败回退 `.ts`）
