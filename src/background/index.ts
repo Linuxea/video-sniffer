@@ -265,6 +265,16 @@ chrome.runtime.onMessage.addListener((msg: any, sender, sendResponse) => {
       break
     }
 
+    case 'REMOVE_JOB': {
+      sendResponse({ ok: jobManager.remove(msg.jobId) })
+      break
+    }
+
+    case 'CLEAR_FINISHED_JOBS': {
+      sendResponse({ ok: true, removed: jobManager.clearFinished() })
+      break
+    }
+
     // offscreen → background：分片级页面上下文 fetch 中继（带 cookie/referer）
     case 'PAGE_FETCH_RELAY': {
       chrome.tabs

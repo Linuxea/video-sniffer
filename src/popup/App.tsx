@@ -69,7 +69,15 @@ function ResourceMeta({ res }: { res: MediaResource }) {
   )
 }
 
-function JobCard({ job, onCancel }: { job: DownloadJob; onCancel: (id: string) => void }) {
+function JobCard({
+  job,
+  onCancel,
+  onRemove,
+}: {
+  job: DownloadJob
+  onCancel: (id: string) => void
+  onRemove: (id: string) => void
+}) {
   const pct =
     job.totalBytes > 0
       ? Math.min(100, (job.doneBytes / job.totalBytes) * 100)
@@ -81,7 +89,11 @@ function JobCard({ job, onCancel }: { job: DownloadJob; onCancel: (id: string) =
     <button className="mini-btn" onClick={() => onCancel(job.id)} title="取消">
       取消
     </button>
-  ) : null
+  ) : (
+    <button className="mini-btn" onClick={() => onRemove(job.id)} title="删除记录">
+      ✕
+    </button>
+  )
   return (
     <div className="job">
       <div className="job-head">
@@ -267,6 +279,18 @@ export default function App() {
     [refreshJobs],
   )
 
+  const removeJob = useCallback(
+    (jobId: string) => {
+      void send({ target: 'background', type: 'REMOVE_JOB', jobId }).then(refreshJobs)
+    },
+    [refreshJobs],
+  )
+
+  const clearFinishedJobs = useCallback(async () => {
+    await send({ target: 'background', type: 'CLEAR_FINISHED_JOBS' }).catch(() => {})
+    await refreshJobs()
+  }, [refreshJobs])
+
   const rescan = useCallback(async () => {
     if (tabId == null) return
     await send({ target: 'background', type: 'RESCAN', tabId }).catch(() => {})
@@ -306,12 +330,19 @@ export default function App() {
       <div className="list">
         {(activeJobs.length > 0 || doneJobs.length > 0) && (
           <>
-            <div className="section-title">下载任务{activeJobs.length > 0 ? ` · ${activeJobs.length} 进行中` : ''}</div>
+            <div className="section-title">
+              <span>下载任务{activeJobs.length > 0 ? ` · ${activeJobs.length} 进行中` : ''}</span>
+              {doneJobs.length > 0 && (
+                <button className="mini-btn" style={{ marginLeft: 'auto' }} onClick={clearFinishedJobs}>
+                  清空记录
+                </button>
+              )}
+            </div>
             {activeJobs.map((j) => (
-              <JobCard key={j.id} job={j} onCancel={cancelJob} />
+              <JobCard key={j.id} job={j} onCancel={cancelJob} onRemove={removeJob} />
             ))}
             {doneJobs.map((j) => (
-              <JobCard key={j.id} job={j} onCancel={cancelJob} />
+              <JobCard key={j.id} job={j} onCancel={cancelJob} onRemove={removeJob} />
             ))}
           </>
         )}

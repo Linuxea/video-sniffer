@@ -65,6 +65,34 @@ class JobManager {
     return [...this.jobs.values()].sort((a, b) => b.startedAt - a.startedAt)
   }
 
+  /** 删除单条任务记录（进行中的不允许删，先取消） */
+  remove(jobId: string): boolean {
+    const j = this.jobs.get(jobId)
+    if (!j || isActive(j)) return false
+    this.jobs.delete(jobId)
+    this.persist()
+    this.broadcast(true)
+    this.notify()
+    return true
+  }
+
+  /** 清空全部已结束的任务记录，返回清除数量 */
+  clearFinished(): number {
+    let n = 0
+    for (const [id, j] of this.jobs) {
+      if (!isActive(j)) {
+        this.jobs.delete(id)
+        n++
+      }
+    }
+    if (n) {
+      this.persist()
+      this.broadcast(true)
+      this.notify()
+    }
+    return n
+  }
+
   hasActive(): boolean {
     for (const j of this.jobs.values()) if (isActive(j)) return true
     return false
